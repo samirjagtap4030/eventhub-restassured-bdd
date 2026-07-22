@@ -1,0 +1,4 @@
+# Tell GitHub Linguist to exclude app source from language stats.
+# This is a Java/REST Assured BDD project; backend & frontend are the AUT (app under test).
+backend/** linguist-vendored
+frontend/** linguist-vendored

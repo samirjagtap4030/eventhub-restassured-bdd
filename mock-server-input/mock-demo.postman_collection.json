@@ -1,0 +1,166 @@
+{
+  "info": {
+    "name": "Mock Demo",
+    "description": "Auto-generated mock collection. Independent of the real EventHub collections — do not merge.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Ping",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/ping", "host": ["{{baseUrl}}"], "path": ["api", "ping"] }
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/ping", "host": ["{{baseUrl}}"], "path": ["api", "ping"] }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"message\": \"pong\"\n}"
+        }
+      ],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Response has message\", () => {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json.message).to.eql(\"pong\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Greet",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Samir\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/greet", "host": ["{{baseUrl}}"], "path": ["api", "greet"] }
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Samir\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/greet", "host": ["{{baseUrl}}"], "path": ["api", "greet"] }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"data\": {\n    \"greeting\": \"Hello, Samir!\"\n  }\n}"
+        }
+      ],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Response has greeting\", () => {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json.data).to.have.property(\"greeting\");",
+              "    pm.expect(json.data.greeting).to.be.a(\"string\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Widget by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/widgets/1", "host": ["{{baseUrl}}"], "path": ["api", "widgets", "1"] }
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/widgets/1", "host": ["{{baseUrl}}"], "path": ["api", "widgets", "1"] }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"Sample Widget\",\n    \"price\": 9.99,\n    \"inStock\": true\n  }\n}"
+        }
+      ],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Response has required fields\", () => {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json.data).to.have.property(\"id\");",
+              "    pm.expect(json.data).to.have.property(\"name\");",
+              "    pm.expect(json.data).to.have.property(\"price\");",
+              "});",
+              "pm.test(\"Data types are correct\", () => {",
+              "    const json = pm.response.json().data;",
+              "    pm.expect(json.id).to.be.a(\"number\");",
+              "    pm.expect(json.name).to.be.a(\"string\");",
+              "    pm.expect(json.price).to.be.a(\"number\");",
+              "    pm.expect(json.inStock).to.be.a(\"boolean\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Widget - Not Found (404)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/widgets/999", "host": ["{{baseUrl}}"], "path": ["api", "widgets", "999"] }
+      },
+      "response": [
+        {
+          "name": "404 Not Found",
+          "originalRequest": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/widgets/999", "host": ["{{baseUrl}}"], "path": ["api", "widgets", "999"] }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"message\": \"Widget not found\"\n}"
+        }
+      ],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 404\", () => pm.response.to.have.status(404));",
+              "pm.test(\"Response has message\", () => {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.have.property(\"message\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

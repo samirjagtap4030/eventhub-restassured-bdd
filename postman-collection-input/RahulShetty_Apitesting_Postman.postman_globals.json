@@ -1,0 +1,27 @@
+{
+	"id": "0e396ba7-b2b6-41d9-8e68-e9fa824f2f92",
+	"values": [
+		{
+			"key": "companyCode",
+			"value": "RS",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		},
+		{
+			"key": "code ",
+			"value": "xxxxxxxxxxx",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"name": "RahulShetty_Apitesting_Postman Globals",
+	"_postman_variable_scope": "globals",
+	"_postman_exported_at": "2026-06-05T15:35:49.013Z",
+	"_postman_exported_using": "Postman/12.13.6"
+}
