@@ -34,8 +34,8 @@ This repository contains **two layers of testing** built on top of the **EventHu
 
 | Layer | Purpose |
 |-------|---------|
-| **`library-api-automation/`** | REST Assured + Cucumber BDD framework for the Library Book API (add / get / delete books) |
-| **`postman-collection-input/`** | Postman collections, QA & UAT environments, and globals for exploratory/manual API testing |
+| **`eventhub-bookings-api-automation/`** | REST Assured + Cucumber BDD framework for the EventHub Bookings API (create / list / get / cancel bookings) |
+| **`postman-collection-input/`** | Postman collections, environments, and globals for exploratory/manual API testing |
 | **`mock-server-input/`** | Postman mock server setup for contract testing without hitting the real backend |
 | **`backend/`** | EventHub Express.js REST API (Node.js + Prisma + MySQL) |
 | **`frontend/`** | EventHub Next.js 14 App Router UI |
@@ -52,15 +52,19 @@ The BDD framework follows a **Gherkin-first** approach: plain-English `.feature`
 target/cucumber-html-reports/cucumber-html-reports/overview-features.html
 ```
 
-Open the file in any browser after running `mvn verify` inside `library-api-automation/`.
+Open the file in any browser after running `mvn verify` inside `eventhub-bookings-api-automation/`.
 
 ### Tags Available
 
 | Tag | Scenarios |
 |-----|-----------|
-| `@AddBook` | Add book via POST → verify `Msg` and ID business rule |
-| `@DeleteBook` | Delete book via POST → verify `msg` confirms deletion |
-| `@Regression` | Full regression suite (both tags) |
+| `@Bookings` | Core booking flows — create, list, get by ID/ref, cancel |
+| `@HappyPath` | Successful create/list/get/cancel paths |
+| `@NeedsBooking` | Scenarios that depend on a freshly created booking (auto-set up via hooks) |
+| `@CancelBooking` | Cancel booking, then verify a second cancel returns 404 |
+| `@Negative` | Invalid quantity, missing fields, non-existent booking |
+| `@Security` | Unauthenticated request returns 401 |
+| `@Regression` | Full regression suite (all tags) |
 
 ---
 
@@ -72,11 +76,11 @@ git clone https://github.com/samirjagtap4030/eventhub-restassured-bdd.git
 cd eventhub-restassured-bdd
 
 # 2 — Configure base URL
-#     Edit: library-api-automation/src/test/java/resources/global.properties
+#     Edit: eventhub-bookings-api-automation/src/test/java/resources/global.properties
 #     Set: baseUrl=<your-api-server>
 
 # 3 — Run all BDD tests
-cd library-api-automation
+cd eventhub-bookings-api-automation
 mvn clean verify
 
 # Report opens at:
@@ -108,7 +112,6 @@ mvn clean verify
 | Java | 21 | Language |
 | Apache Maven | 3.8+ | Build & dependency management |
 | REST Assured | 6.0.0 | HTTP request/response assertions |
-| REST Assured JSON Schema Validator | 6.0.0 | JSON Schema contract validation |
 | Cucumber Java | 7.34.3 | BDD step wiring (Gherkin → Java) |
 | Cucumber JUnit | 7.34.3 | Test runner integration |
 | JUnit | 4.13.2 | Assertion + runner foundation |
@@ -149,14 +152,13 @@ flowchart TD
     D --> H["REST Assured\nHTTP Engine"]
     F --> H
     E --> H
-    H --> I["Library Book API\n(/Library/Addbook.php\n/Library/GetBook.php\n/Library/DeleteBook.php)"]
+    H --> I["Bookings API\n(/api/bookings\n/api/bookings/ref\n/api/events)"]
     I --> H
-    H --> J["Assertions\n(status code, JSON fields,\nbusiness rules)"]
-    J --> K["logging.txt\n(request+response log)"]
-    J --> L["target/jsonReports/\ncucumber-report.json"]
-    L --> M["Maven Cucumber Reporting\n(masterthought HTML)"]
-    B2["RerunFailedTestRunner.java"] --> N["target/failed_scenarios.txt"]
-    N --> B2
+    H --> J["Assertions\n(status code, JSON fields,\nbooking-ref regex, price calc)"]
+    J --> K["target/jsonReports/\ncucumber-report.json"]
+    K --> L["Maven Cucumber Reporting\n(masterthought HTML)"]
+    B2["RerunFailedTestRunner.java"] --> M["target/failed_scenarios.txt"]
+    M --> B2
 ```
 
 ### EventHub Application Architecture
@@ -182,7 +184,7 @@ flowchart LR
     end
 
     subgraph Testing["Test Layers"]
-        BDD["library-api-automation\nREST Assured + Cucumber"]
+        BDD["eventhub-bookings-api-automation\nREST Assured + Cucumber"]
         POSTMAN["postman-collection-input\nManual / exploratory"]
         MOCK["mock-server-input\nPostman Mock Server"]
     end
@@ -222,40 +224,49 @@ sequenceDiagram
 ```
 eventhub-restassured-bdd/
 │
-├── library-api-automation/               # REST Assured + Cucumber BDD framework
+├── eventhub-bookings-api-automation/     # REST Assured + Cucumber BDD framework
 │   ├── pom.xml                           # Maven dependencies & plugins
 │   └── src/
-│       ├── main/java/files/
-│       │   ├── payload.java              # POJO model for request payloads
-│       │   └── ReUsableMethods.java      # Shared utility methods
+│       ├── main/java/
+│       │   ├── files/
+│       │   │   └── ReUsableMethods.java  # Shared utility methods
+│       │   └── pojo/
+│       │       ├── BookingData.java      # Booking domain model
+│       │       ├── BookingListResponse.java
+│       │       ├── BookingResponse.java
+│       │       ├── CreateBookingRequest.java
+│       │       ├── CreateEventRequest.java
+│       │       ├── EventData.java
+│       │       ├── EventResponse.java
+│       │       ├── LoginRequest.java
+│       │       ├── LoginResponse.java
+│       │       ├── Pagination.java
+│       │       └── UserInfo.java
 │       └── test/java/
 │           ├── cucumber/Options/
 │           │   ├── TestRunner.java       # Main Cucumber runner (@CucumberOptions)
 │           │   └── RerunFailedTestRunner.java  # Reruns only failed scenarios
 │           ├── features/
-│           │   └── libraryValidations.feature  # Gherkin BDD scenarios
+│           │   └── bookingValidations.feature  # Gherkin BDD scenarios (10 scenarios)
 │           ├── resources/
 │           │   ├── APIResources.java     # Enum: endpoint URL registry
-│           │   ├── TestDataBuild.java    # Payload builders (add / delete book)
+│           │   ├── TestDataBuild.java    # Payload builders (booking / event)
 │           │   ├── Utils.java            # RequestSpecBuilder + JsonPath helpers
 │           │   └── global.properties     # baseUrl config (no credentials here)
 │           ├── standalone/
-│           │   └── SpecBuilder_Library.java    # Standalone TestNG test (pre-BDD validation)
+│           │   └── SpecBuilder_Bookings.java  # Standalone TestNG test (pre-BDD validation)
 │           └── stepDefinations/
 │               ├── StepDefination.java   # Given/When/Then step implementations
-│               └── Hooks.java            # @Before hook: ensures book_id for @DeleteBook
+│               └── Hooks.java            # @Before hooks: login/event setup, fresh booking per @NeedsBooking
 │
 ├── postman-collection-input/             # Postman exports for manual API testing
-│   ├── Library_DDT_5_18.postman_collection.json
-│   ├── QA.postman_environment.json       # QA environment (course server)
-│   ├── UAT.postman_environment.json      # UAT environment (rahulshettyacademy.com)
-│   └── RahulShetty_Apitesting_Postman.postman_globals.json
+│   ├── bookings.postman_collection.json
+│   └── local.postman_environment.json
 │
 ├── mock-server-input/                    # Postman mock server setup
 │   ├── mock-demo.postman_collection.json
 │   ├── mock.postman_environment.json
-│   ├── local.postman_environment.json
-│   └── README.md
+│   └── local.postman_environment.json
 │
 ├── backend/                              # EventHub Express.js API
 │   ├── server.js                         # Bootstrap + DB connect
@@ -288,7 +299,7 @@ eventhub-restassured-bdd/
 
 ## Agentic AI Workflow
 
-This framework's tests, step definitions, and Cucumber wiring were generated and reviewed with an AI-agent pipeline (Claude Code skills) that validates REST Assured patterns standalone before wiring them into BDD, then runs a dedicated review pass on both the standalone and Cucumber layers. The pipeline design, prompts, and review criteria are private IP — demo on request.
+This framework's tests, step definitions, and Cucumber wiring were generated and reviewed with an AI-agent pipeline (Claude Code skills: contract-discovery → generate-standalone-tests → review → generate-cucumber-bdd → review) that validates REST Assured patterns standalone before wiring them into BDD, then runs a dedicated review pass on both the standalone and Cucumber layers. The pipeline design, prompts, and review criteria are private IP — demo on request.
 
 ---
 
@@ -297,18 +308,18 @@ This framework's tests, step definitions, and Cucumber wiring were generated and
 ### Run All BDD Tests
 
 ```bash
-cd library-api-automation
+cd eventhub-bookings-api-automation
 mvn clean verify
 ```
 
 ### Run by Tag
 
 ```bash
-# Run only AddBook scenarios
-mvn test -Dcucumber.filter.tags="@AddBook"
+# Run only core booking scenarios
+mvn test -Dcucumber.filter.tags="@Bookings"
 
-# Run only DeleteBook scenarios
-mvn test -Dcucumber.filter.tags="@DeleteBook"
+# Run only negative/error scenarios
+mvn test -Dcucumber.filter.tags="@Negative"
 
 # Run full Regression suite
 mvn test -Dcucumber.filter.tags="@Regression"
@@ -336,13 +347,13 @@ npm run seed      # Seed static events + test user
 
 ### Configure Base URL
 
-Edit `library-api-automation/src/test/java/resources/global.properties`:
+Edit `eventhub-bookings-api-automation/src/test/java/resources/global.properties`:
 
 ```properties
 baseUrl=http://<your-api-server>
 ```
 
-> No credentials are stored in this file. Auth tokens are generated at runtime and shared via static state in `StepDefination`.
+> No credentials are stored in this file beyond placeholder values. Auth tokens are generated at runtime and shared via static state in `StepDefination`.
 
 ---
 
@@ -353,9 +364,9 @@ baseUrl=http://<your-api-server>
 | Metric | Manual Testing | This BDD Framework |
 |--------|---------------|-------------------|
 | Setup time (per run) | 5 min (open Postman, configure env) | 0 (one `mvn` command) |
-| Execute 4 scenarios | ~8 min | ~12 seconds |
+| Execute 10 scenarios | ~15 min | ~20 seconds |
 | Verify & document results | ~10 min | 0 (Masterthought HTML auto-generated) |
-| **Total per run** | **~23 min** | **~15 seconds** |
+| **Total per run** | **~30 min** | **~20 seconds** |
 | Rerun failed only | ~8 min (manual re-selection) | Automatic via `failed_scenarios.txt` |
 | Multi-environment switch | ~3 min (Postman env swap) | 1 line in `global.properties` |
 
@@ -363,20 +374,18 @@ baseUrl=http://<your-api-server>
 
 | Period | Manual Hours | Automated Hours | **Saved** |
 |--------|-------------|----------------|-----------|
-| Weekly (10 runs) | ~3.8 hrs | ~2.5 min | **~3.75 hrs** |
-| Monthly (40 runs) | ~15.3 hrs | ~10 min | **~15 hrs** |
-| Yearly (480 runs) | ~184 hrs | ~2 hrs | **~182 hrs** |
+| Weekly (10 runs) | ~5 hrs | ~3.3 min | **~4.9 hrs** |
+| Monthly (40 runs) | ~20 hrs | ~13 min | **~19.8 hrs** |
+| Yearly (480 runs) | ~240 hrs | ~2.7 hrs | **~237 hrs** |
 
 ### Quality Comparison
 
 | Capability | Manual (Postman) | BDD Framework |
 |-----------|-----------------|---------------|
 | Regression on every commit | Risky / skipped | Automatic |
-| Business rule validation (isbn + aisle ID) | Manual check | Asserted in code |
+| Booking-ref format validation | Manual check | Regex-asserted in code |
 | Failed-test rerun (no re-execution of passing tests) | Not available | `RerunFailedTestRunner` |
-| Request/response audit log | Not persisted | `logging.txt` auto-generated |
-| JSON Schema contract validation | Plugin only | REST Assured built-in |
-| Cross-environment (QA / UAT) | Manual env switch | `global.properties` |
+| Cross-environment (local / staging) | Manual env switch | `global.properties` |
 | HTML report for stakeholders | Manual export | Masterthought auto-report |
 | BDD scenarios readable by non-developers | No | Yes (`.feature` files) |
 
@@ -443,11 +452,11 @@ npm start
 
 ---
 
-### `@DeleteBook` fails when run in isolation
+### `@NeedsBooking` scenarios fail when run in isolation
 
-**Cause**: `book_id` is `null` — no `@AddBook` scenario ran first to populate it.
+**Cause**: No fresh booking exists yet — `Hooks.java`'s `@Before("@NeedsBooking")` guard creates one automatically via `setupFreshBooking()`.
 
-**Fix**: The `Hooks.java` `@Before("@DeleteBook")` guard handles this automatically. If it still fails, check that `StepDefination.book_id` is `static` and not reset between test classes.
+**Fix**: If it still fails, check that `StepDefination.token`/`eventId`/`bookingId` are `static` and not reset between test classes.
 
 ---
 
@@ -467,15 +476,13 @@ This is a personal learning project. It is maintained solely by the author and i
 
 ## Changelog
 
-### v1.0.0 — 2026-07-02
-- Initial commit: REST Assured + Cucumber BDD framework for Library Book API
-- Scenarios: `@AddBook` (3 examples via `Scenario Outline`), `@DeleteBook`
+### v1.0.0 — 2026-07-22
+- Initial commit: REST Assured + Cucumber BDD framework for EventHub Bookings API
+- 10 Cucumber scenarios: booking creation (ref-format regex, price calc, seat reduction), pagination, get by ID/ref, cancel-then-404, invalid-quantity/missing-fields rejection, unauthenticated 401
 - Enum-based endpoint registry (`APIResources.java`)
-- Static shared state + `@Before` Hooks guard for cross-scenario dependency
+- Static shared state + `@Before` Hooks guard for cross-scenario dependency (login/event setup, fresh booking per scenario)
 - Masterthought HTML reporting via `maven-cucumber-reporting`
 - Failed-scenario rerun runner (`RerunFailedTestRunner.java`)
-- Request/response logging to `logging.txt`
-- JSON Schema contract validation (REST Assured `json-schema-validator`)
 - Claude Code custom skills for AI-assisted test generation
 - Mock server input files for offline/contract testing
 - EventHub full-stack app (Next.js 14 + Express.js + MySQL + Prisma)
